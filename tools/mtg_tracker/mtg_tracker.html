@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MTG Life Tracker</title>
+  <style>
+    :root {
+      --bg: #10121a;
+      --panel: #1b1f2a;
+      --panel-2: #252b38;
+      --text: #f4f1e8;
+      --muted: #b7b0a3;
+      --accent: #caa35c;
+      --danger: #d85a5a;
+      --shadow: rgba(0,0,0,.35);
+      --radius: 18px;
+      --gap: 9px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at top, #252a39 0%, var(--bg) 50%, #07080d 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      overscroll-behavior: none;
+    }
+
+    button, input, select { font: inherit; }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--panel-2);
+      padding: 10px 13px;
+      cursor: pointer;
+      font-weight: 800;
+      box-shadow: 0 4px 14px var(--shadow);
+    }
+
+    button:active { transform: scale(.96); }
+
+    input, select {
+      border: 0;
+      border-radius: 13px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 11px;
+      min-width: 0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 10px 10px 7px;
+      background: linear-gradient(to bottom, rgba(16,18,26,.98), rgba(16,18,26,.78));
+      backdrop-filter: blur(8px);
+      display: grid;
+      gap: 8px;
+    }
+
+    .top-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reset-top {
+      padding: 8px 10px;
+      font-size: .84rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(.86rem, 3.7vw, 1.05rem);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .toolbar-old {
+      display: flex;
+      gap: 7px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-old button {
+      padding: 8px 10px;
+      font-size: .88rem;
+    }
+
+    .tray-wrap {
+      position: relative;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .tray-arrow {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      padding: 0;
+      font-size: 1.25rem;
+      line-height: 1;
+      background: rgba(255,255,255,.12);
+      transition: transform .18s ease;
+    }
+
+    .tray-wrap.open .tray-arrow {
+      transform: rotate(180deg);
+    }
+
+    .top-tray {
+      position: absolute;
+      right: 0;
+      top: 48px;
+      width: min(92vw, 360px);
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 22px;
+      background: rgba(14,16,23,.96);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 55px rgba(0,0,0,.62);
+      opacity: 0;
+      transform: translateY(-8px) scale(.98);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 40;
+    }
+
+    .tray-wrap.open .top-tray {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .tray-section {
+      display: grid;
+      gap: 8px;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 9px;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .settings-mini label {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .settings-mini input,
+    .settings-mini select {
+      margin-top: 4px;
+      padding: 8px;
+      border-radius: 10px;
+      font-size: .9rem;
+    }
+
+    .apply-mini {
+      width: 100%;
+      border-radius: 12px;
+      padding: 9px;
+      box-shadow: none;
+    }
+
+    .gold { background: linear-gradient(135deg, #9b7433, var(--accent)); color: #16110a; }
+    .red { background: #823737; }
+    .green { background: #2f6947; }
+    .blue { background: #344f92; }
+
+    .rolls-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 9px;
+    }
+
+    .rolls-result {
+      display: none;
+    }
+
+    .rolls-bar button {
+      box-shadow: none;
+    }
+
+    .dice-btn {
+      width: 52px;
+      aspect-ratio: 1 / 1;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      background: linear-gradient(135deg, #caa35c, #755522);
+      color: #15100a;
+      font-weight: 950;
+      font-size: .9rem;
+      border-radius: 12px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .random-player-btn {
+      grid-column: 1 / -1;
+      border-radius: 13px;
+      padding: 10px;
+      font-size: .9rem;
+    }
+
+    .roll-overlay-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.42);
+      backdrop-filter: blur(2px);
+      z-index: 60;
+    }
+
+    .roll-overlay-backdrop.open {
+      display: flex;
+    }
+
+    .roll-card {
+      min-width: 240px;
+      max-width: min(86vw, 360px);
+      min-height: 250px;
+      padding: 20px;
+      border-radius: 28px;
+      background: rgba(18,21,30,.9);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 24px 80px rgba(0,0,0,.75);
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      text-align: center;
+      animation: rollPop .14s ease forwards;
+    }
+
+    @keyframes rollPop {
+      from { transform: scale(.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .roll-shape {
+      width: min(34vw, 150px);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #caa35c, #755522);
+      color: #15100a;
+      font-weight: 950;
+      font-size: clamp(2.2rem, 8vw, 3rem);
+      text-shadow: none;
+      box-shadow: 0 12px 30px rgba(0,0,0,.42);
+      transform-origin: center;
+      flex-shrink: 0;
+    }
+
+    .shape-d2 { border-radius: 50%; }
+    .shape-d4 { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+    .shape-d6 { border-radius: 18px; }
+    .shape-d8 { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+    .shape-d10 { clip-path: polygon(50% 0%, 95% 32%, 78% 100%, 22% 100%, 5% 32%); }
+    .shape-d12 { clip-path: polygon(50% 0%, 90% 20%, 100% 62%, 72% 100%, 28% 100%, 0% 62%, 10% 20%); }
+    .shape-d20 { clip-path: polygon(50% 0%, 92% 25%, 92% 75%, 50% 100%, 8% 75%, 8% 25%); }
+    .shape-coin {
+      border-radius: 50%;
+      animation: coinFlip .2s linear infinite;
+    }
+
+    .shape-spin {
+      animation: shapeSpin .18s ease;
+    }
+
+    @keyframes shapeSpin {
+      0% { transform: rotate(-10deg) scale(.82); opacity: .55; }
+      50% { transform: rotate(6deg) scale(1.08); opacity: 1; }
+      100% { transform: rotate(0deg) scale(1); opacity: 1; }
+    }
+
+    @keyframes coinFlip {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(180deg); }
+    }
+
+    .roll-label {
+      color: var(--muted);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .82rem;
+    }
+
+    .roll-result-text {
+      font-size: 1.7rem;
+      font-weight: 950;
+    }
+
+    main {
+      padding: 9px 9px 24px;
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+      align-items: stretch;
+    }
+
+    .player {
+      background:
+        linear-gradient(160deg, rgba(16,18,26,.38), rgba(0,0,0,.58)),
+        linear-gradient(135deg, var(--pcolor1), var(--pcolor2));
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: var(--radius);
+      padding: clamp(7px, 2.4vw, 12px);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(6px, 1.6vw, 10px);
+      min-height: var(--card-min);
+      box-shadow: 0 8px 24px var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .player::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,.24), transparent 38%),
+        radial-gradient(circle at bottom left, rgba(0,0,0,.35), transparent 45%);
+      pointer-events: none;
+    }
+
+    .player > * { position: relative; z-index: 1; }
+
+    .name {
+      width: 100%;
+      text-align: center;
+      font-weight: 900;
+      background: rgba(0,0,0,.22);
+      padding: clamp(7px, 2vw, 10px);
+      font-size: var(--name-size);
+      user-select: text;
+    }
+
+    .name::placeholder {
+      color: rgba(244,241,232,.8);
+    }
+
+    .life {
+      text-align: center;
+      font-size: var(--life-size);
+      font-weight: 950;
+      line-height: .86;
+      letter-spacing: -.08em;
+      text-shadow: 0 7px 18px rgba(0,0,0,.55);
+      margin: 2px 0;
+    }
+
+    .tally {
+      position: absolute;
+      left: 50%;
+      top: 47%;
+      transform: translate(-50%, -50%) scale(.96);
+      min-width: 74px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.62);
+      border: 1px solid rgba(255,255,255,.22);
+      color: var(--text);
+      text-align: center;
+      font-weight: 950;
+      font-size: var(--tally-size);
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: 0 10px 28px rgba(0,0,0,.45);
+      transition: opacity .22s ease, transform .22s ease;
+      z-index: 4;
+    }
+
+    .tally.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .tally.fade {
+      opacity: 0;
+      transform: translate(-50%, -70%) scale(.9);
+      transition: opacity .75s ease, transform .75s ease;
+    }
+
+    .tally.positive {
+      color: #9cffbd;
+    }
+
+    .tally.negative {
+      color: #ff9c9c;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .stat {
+      background: rgba(0,0,0,.24);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: var(--label-size);
+      color: rgba(244,241,232,.78);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stat-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .stat-controls button {
+      padding: 4px 8px;
+      border-radius: 9px;
+      box-shadow: none;
+      font-size: var(--small-size);
+      background: rgba(0,0,0,.25);
+    }
+
+    .stat-value {
+      min-width: 20px;
+      font-weight: 950;
+      font-size: var(--small-size);
+    }
+
+    .life-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .life-controls button {
+      border-radius: 15px;
+      font-size: var(--btn-size);
+      padding: var(--btn-pad) 4px;
+    }
+
+    .dead {
+      outline: 2px solid var(--danger);
+      filter: grayscale(.25);
+    }
+
+    .dead .life { color: #ff8b8b; }
+
+    .counter-popup {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: min(88vw, 320px);
+      transform: translate(-50%, -50%) scale(.96);
+      background: #171b25;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.72);
+      z-index: 30;
+      display: none;
+    }
+
+    .counter-popup.open {
+      display: block;
+      animation: popIn .14s ease forwards;
+    }
+
+    @keyframes popIn {
+      to { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .counter-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.56);
+      backdrop-filter: blur(2px);
+      z-index: 29;
+      display: none;
+    }
+
+    .counter-backdrop.open {
+      display: block;
+    }
+
+    .counter-title {
+      font-weight: 950;
+      font-size: 1.15rem;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .popup-stat {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .popup-stat-label {
+      color: var(--muted);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-size: .78rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .popup-stat-controls {
+      display: grid;
+      grid-template-columns: 1fr 70px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .popup-stat-controls button {
+      border-radius: 14px;
+      font-size: 1.3rem;
+      padding: 12px;
+    }
+
+    .popup-stat-value {
+      text-align: center;
+      font-weight: 950;
+      font-size: 1.65rem;
+    }
+
+    body.compact-counters .stats {
+      display: none;
+    }
+
+    body.compact-counters .life {
+      cursor: pointer;
+    }
+
+    body.compact-counters .life::after {
+      content: "tap for counters";
+      display: block;
+      font-size: .55rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(244,241,232,.72);
+      margin-top: 6px;
+      font-weight: 800;
+    }
+
+    dialog {
+      width: min(92vw, 440px);
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 22px;
+      background: #171b25;
+      color: var(--text);
+      box-shadow: 0 20px 60px rgba(0,0,0,.65);
+      padding: 17px;
+    }
+
+    dialog::backdrop {
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(3px);
+    }
+
+    dialog h2 { margin: 0 0 14px; }
+
+    .settings-grid {
+      display: grid;
+      gap: 13px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: .9rem;
+    }
+
+    .inline-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .dialog-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.35;
+      margin: 3px 0 0;
+    }
+
+    body.scale-large {
+      --cols: 1;
+      --card-min: 245px;
+      --life-size: clamp(4.3rem, 19vw, 7.2rem);
+      --btn-size: 1.65rem;
+      --btn-pad: 18px;
+      --small-size: .88rem;
+      --label-size: .68rem;
+      --name-size: .95rem;
+      --tally-size: 1.7rem;
+    }
+
+    body.scale-medium {
+      --cols: 2;
+      --card-min: 218px;
+      --life-size: clamp(3.25rem, 15vw, 5.3rem);
+      --btn-size: 1.35rem;
+      --btn-pad: 14px;
+      --small-size: .78rem;
+      --label-size: .62rem;
+      --name-size: .82rem;
+      --tally-size: 1.35rem;
+    }
+
+    body.scale-small {
+      --cols: 2;
+      --card-min: 168px;
+      --life-size: clamp(2.45rem, 11vw, 4.1rem);
+      --btn-size: 1.05rem;
+      --btn-pad: 10px;
+      --small-size: .68rem;
+      --label-size: .55rem;
+      --name-size: .72rem;
+      --tally-size: 1.1rem;
+      --radius: 15px;
+      --gap: 7px;
+    }
+
+    body.scale-tiny {
+      --cols: 3;
+      --card-min: 142px;
+      --life-size: clamp(2rem, 8.5vw, 3.2rem);
+      --btn-size: .9rem;
+      --btn-pad: 8px;
+      --small-size: .6rem;
+      --label-size: .48rem;
+      --name-size: .62rem;
+      --tally-size: .95rem;
+      --radius: 13px;
+      --gap: 6px;
+    }
+
+    body.scale-tiny .stat { padding: 4px 2px; }
+    body.scale-tiny .stat-controls button { padding: 2px 6px; }
+
+    @media (orientation: landscape) {
+      body.scale-large { --cols: 2; }
+      body.scale-medium { --cols: 3; }
+      body.scale-small { --cols: 4; }
+      body.scale-tiny { --cols: 5; }
+    }
+  </style>
+</head>
+<body class="scale-large">
+  <header>
+    <div class="top-row">
+      <button class="red reset-top" onclick="resetGame()">Reset</button>
+      <h1>MTG Life Tracker</h1>
+      <div class="tray-wrap">
+        <button id="trayArrow" class="tray-arrow" onclick="toggleTray()" aria-label="Open menu">▾</button>
+        <div id="topTray" class="top-tray">
+          <div class="tray-section settings-mini">
+            <div class="mini-row">
+              <label>
+                Players
+                <input id="quickPlayerCount" type="number" min="1" max="99" step="1" inputmode="numeric" />
+              </label>
+              <label>
+                Life
+                <input id="quickStartingLife" type="number" min="1" max="999" step="1" inputmode="numeric" />
+              </label>
+            </div>
+            <label>
+              Commander
+              <select id="quickCommanderSlots">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </label>
+            <button class="gold apply-mini" onclick="applyQuickSettings()">Apply</button>
+          </div>
+
+          <div id="rollsBar" class="rolls-bar open">
+            <button class="dice-btn shape-d2" onclick="rollDie(2)">2</button>
+            <button class="dice-btn shape-d4" onclick="rollDie(4)">4</button>
+            <button class="dice-btn shape-d6" onclick="rollDie(6)">6</button>
+            <button class="dice-btn shape-d8" onclick="rollDie(8)">8</button>
+            <button class="dice-btn shape-d10" onclick="rollDie(10)">10</button>
+            <button class="dice-btn shape-d12" onclick="rollDie(12)">12</button>
+            <button class="dice-btn shape-d20" onclick="rollDie(20)">20</button>
+            <button class="random-player-btn" onclick="rollRandomPlayer()">Random Player</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="board"></main>
+
+  <div id="rollOverlay" class="roll-overlay-backdrop" onclick="hideRollOverlay()">
+    <div class="roll-card">
+      <div id="rollShape" class="roll-shape shape-d6">?</div>
+      <div id="rollLabel" class="roll-label">Rolling</div>
+      <div id="rollResultText" class="roll-result-text">Tap to close</div>
+    </div>
+  </div>
+
+  <div id="counterBackdrop" class="counter-backdrop" onclick="closeCounterMenu()"></div>
+  <div id="counterPopup" class="counter-popup">
+    <div id="counterTitle" class="counter-title">Player Counters</div>
+
+    <div class="popup-stat">
+      <div class="popup-stat-label">Poison</div>
+      <div class="popup-stat-controls">
+        <button class="red" onclick="changePopupPoison(-1)">−</button>
+        <div id="popupPoison" class="popup-stat-value">0</div>
+        <button class="green" onclick="changePopupPoison(1)">+</button>
+      </div>
+    </div>
+
+    <div id="popupCommanderBlock" class="popup-stat">
+      <div class="popup-stat-label">Commander Damage</div>
+      <div class="popup-stat-controls">
+        <button class="red" onclick="changePopupCommander(-1)">−</button>
+        <div id="popupCommander" class="popup-stat-value">0</div>
+        <button class="green" onclick="changePopupCommander(1)">+</button>
+      </div>
+    </div>
+
+    <button style="width:100%; margin-top:4px;" onclick="closeCounterMenu()">Close</button>
+  </div>
+
+  <dialog id="settingsDialog">
+    <h2>Game Setup</h2>
+    <div class="settings-grid">
+      <div class="inline-row">
+        <label>
+          Players
+          <input id="playerCount" type="number" min="1" max="99" step="1" inputmode="numeric" />
+        </label>
+
+        <label>
+          Starting Life
+          <input id="startingLife" type="number" min="1" max="999" step="1" inputmode="numeric" />
+        </label>
+      </div>
+
+      <label>
+        Commander Damage
+        <select id="commanderSlots">
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+      </label>
+
+      <p class="hint">Player names now use placeholder text, so you can tap a name field and start typing immediately.</p>
+    </div>
+
+    <div class="dialog-row">
+      <button onclick="closeSettings()">Cancel</button>
+      <button class="green" onclick="applySettings()">Apply</button>
+    </div>
+  </dialog>
+
+  <script>
+    const board = document.getElementById("board");
+    const settingsDialog = document.getElementById("settingsDialog");
+    const topTray = document.getElementById("topTray");
+    const trayArrow = document.getElementById("trayArrow");
+    const rollsBar = document.getElementById("rollsBar");
+    const quickPlayerCount = document.getElementById("quickPlayerCount");
+    const quickStartingLife = document.getElementById("quickStartingLife");
+    const quickCommanderSlots = document.getElementById("quickCommanderSlots");
+    const rollOverlay = document.getElementById("rollOverlay");
+    const rollShape = document.getElementById("rollShape");
+    const rollLabel = document.getElementById("rollLabel");
+    const rollResultText = document.getElementById("rollResultText");
+    const counterBackdrop = document.getElementById("counterBackdrop");
+    const counterPopup = document.getElementById("counterPopup");
+    const counterTitle = document.getElementById("counterTitle");
+    const popupPoison = document.getElementById("popupPoison");
+    const popupCommander = document.getElementById("popupCommander");
+    const popupCommanderBlock = document.getElementById("popupCommanderBlock");
+
+    let activeCounterPlayer = null;
+
+    const colorPool = [
+      ["#6d3fd1", "#24113f"],
+      ["#b94040", "#3d1515"],
+      ["#2e8b58", "#123321"],
+      ["#2e63bf", "#101f46"],
+      ["#b7842d", "#3b2710"],
+      ["#b24a8e", "#3b1231"],
+      ["#249ca3", "#10353d"],
+      ["#6f9841", "#253515"],
+      ["#c76a2a", "#43200f"],
+      ["#6b6fd1", "#20224b"],
+      ["#7a3b2c", "#2b1510"],
+      ["#3f8f7a", "#12352c"],
+      ["#8057b8", "#241639"],
+      ["#a8485a", "#341820"]
+    ];
+
+    let state = loadState() || createDefaultState();
+    let tallyState = {};
+
+    function createDefaultState() {
+      return {
+        playerCount: 2,
+        startingLife: 40,
+        commanderSlots: true,
+        players: createPlayers(2, 40)
+      };
+    }
+
+    function createPlayers(count, life) {
+      return Array.from({ length: count }, (_, i) => ({
+        name: "",
+        defaultName: `Player ${i + 1}`,
+        life,
+        poison: 0,
+        commander: 0,
+        colors: randomColorPair()
+      }));
+    }
+
+    function randomColorPair() {
+      return colorPool[Math.floor(Math.random() * colorPool.length)];
+    }
+
+    function normalizePlayer(player, index) {
+      if (!player.defaultName) player.defaultName = `Player ${index + 1}`;
+      if (player.name === undefined || player.name === player.defaultName) player.name = "";
+      if (!Array.isArray(player.colors)) player.colors = randomColorPair();
+      if (typeof player.life !== "number") player.life = state.startingLife || 40;
+      if (typeof player.poison !== "number") player.poison = 0;
+      if (typeof player.commander !== "number") player.commander = 0;
+      return player;
+    }
+
+    function saveState() {
+      localStorage.setItem("mtgLifeTrackerCustomStateV3", JSON.stringify(state));
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("mtgLifeTrackerCustomStateV3"));
+        if (!saved || !Array.isArray(saved.players)) return migrateOldState();
+
+        saved.playerCount = clamp(Number(saved.playerCount) || 2, 1, 99);
+        saved.startingLife = clamp(Number(saved.startingLife) || 40, 1, 999);
+        saved.commanderSlots = saved.commanderSlots !== false;
+
+        while (saved.players.length < saved.playerCount) {
+          saved.players.push({
+            name: "",
+            defaultName: `Player ${saved.players.length + 1}`,
+            life: saved.startingLife,
+            poison: 0,
+            commander: 0,
+            colors: randomColorPair()
+          });
+        }
+
+        saved.players = saved.players.map(normalizePlayer);
+        return saved;
+      } catch {
+        return migrateOldState();
+      }
+    }
+
+    function migrateOldState() {
+      try {
+        const old = JSON.parse(localStorage.getItem("mtgLifeTrackerCustomState"));
+        if (!old || !Array.isArray(old.players)) return null;
+
+        old.playerCount = clamp(Number(old.playerCount) || 2, 1, 99);
+        old.startingLife = clamp(Number(old.startingLife) || 40, 1, 999);
+        old.commanderSlots = old.commanderSlots !== false;
+        old.players = old.players.slice(0, old.playerCount).map((p, i) => ({
+          name: p.name && p.name !== `Player ${i + 1}` ? p.name : "",
+          defaultName: `Player ${i + 1}`,
+          life: typeof p.life === "number" ? p.life : old.startingLife,
+          poison: typeof p.poison === "number" ? p.poison : 0,
+          commander: typeof p.commander === "number" ? p.commander : 0,
+          colors: randomColorPair()
+        }));
+
+        while (old.players.length < old.playerCount) {
+          old.players.push({
+            name: "",
+            defaultName: `Player ${old.players.length + 1}`,
+            life: old.startingLife,
+            poison: 0,
+            commander: 0,
+            colors: randomColorPair()
+          });
+        }
+
+        return old;
+      } catch {
+        return null;
+      }
+    }
+
+    function render() {
+      applyScaleMode();
+      board.innerHTML = "";
+
+      state.players.slice(0, state.playerCount).forEach((player, index) => {
+        normalizePlayer(player, index);
+
+        const section = document.createElement("section");
+        section.className = `player ${player.life <= 0 ? "dead" : ""}`;
+        section.style.setProperty("--pcolor1", player.colors[0]);
+        section.style.setProperty("--pcolor2", player.colors[1]);
+
+        section.innerHTML = `
+          <input
+            class="name"
+            value="${escapeHtml(player.name)}"
+            placeholder="${escapeHtml(player.defaultName)}"
+            onfocus="this.select()"
+            onchange="renamePlayer(${index}, this.value)"
+            onblur="renamePlayer(${index}, this.value)"
+          />
+
+          <div id="life-${index}" class="life" onclick="openCounterMenu(${index})">${player.life}</div>
+          <div id="tally-${index}" class="tally"></div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-label">Poison</div>
+              <div class="stat-controls">
+                <button onclick="changePoison(${index}, -1)">−</button>
+                <span id="poison-${index}" class="stat-value">${player.poison}</span>
+                <button onclick="changePoison(${index}, 1)">+</button>
+              </div>
+            </div>
+
+            <div class="stat" style="display:${state.commanderSlots ? "block" : "none"}">
+              <div class="stat-label">Cmdr</div>
+              <div class="stat-controls">
+                <button onclick="changeCommander(${index}, -1)">−</button>
+                <span id="commander-${index}" class="stat-value">${player.commander}</span>
+                <button onclick="changeCommander(${index}, 1)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="life-controls">
+            <button class="red" onpointerdown="changeLife(${index}, -1)">−</button>
+            <button class="green" onpointerdown="changeLife(${index}, 1)">+</button>
+          </div>
+        `;
+
+        board.appendChild(section);
+      });
+
+      saveState();
+    }
+
+    function applyScaleMode() {
+      document.body.classList.remove("scale-large", "scale-medium", "scale-small", "scale-tiny", "compact-counters");
+
+      if (state.playerCount > 6) {
+        document.body.classList.add("compact-counters");
+      }
+
+      if (state.playerCount <= 2) {
+        document.body.classList.add("scale-large");
+      } else if (state.playerCount <= 4) {
+        document.body.classList.add("scale-medium");
+      } else if (state.playerCount <= 8) {
+        document.body.classList.add("scale-small");
+      } else {
+        document.body.classList.add("scale-tiny");
+      }
+    }
+
+    function changeLife(index, amount) {
+      state.players[index].life += amount;
+
+      const lifeEl = document.getElementById(`life-${index}`);
+      if (lifeEl) lifeEl.textContent = state.players[index].life;
+
+      const card = lifeEl ? lifeEl.closest(".player") : null;
+      if (card) {
+        card.classList.toggle("dead", state.players[index].life <= 0);
+      }
+
+      updateTally(index, amount);
+      vibrate();
+      saveState();
+      showTally(index);
+    }
+
+    function updateTally(index, amount) {
+      if (!tallyState[index]) {
+        tallyState[index] = {
+          total: 0,
+          fadeTimer: null,
+          clearTimer: null
+        };
+      }
+
+      tallyState[index].total += amount;
+
+      clearTimeout(tallyState[index].fadeTimer);
+      clearTimeout(tallyState[index].clearTimer);
+
+      tallyState[index].fadeTimer = setTimeout(() => {
+        const el = document.getElementById(`tally-${index}`);
+        if (el) {
+          el.classList.remove("show");
+          el.classList.add("fade");
+        }
+
+        tallyState[index].clearTimer = setTimeout(() => {
+          if (tallyState[index]) tallyState[index].total = 0;
+          const clearEl = document.getElementById(`tally-${index}`);
+          if (clearEl) {
+            clearEl.textContent = "";
+            clearEl.className = "tally";
+          }
+        }, 780);
+      }, 950);
+    }
+
+    function showTally(index) {
+      const data = tallyState[index];
+      const el = document.getElementById(`tally-${index}`);
+      if (!data || !el || data.total === 0) return;
+
+      el.textContent = data.total > 0 ? `+${data.total}` : `${data.total}`;
+      el.className = `tally show ${data.total > 0 ? "positive" : "negative"}`;
+    }
+
+    function changePoison(index, amount) {
+      state.players[index].poison = Math.max(0, state.players[index].poison + amount);
+
+      const poisonEl = document.getElementById(`poison-${index}`);
+      if (poisonEl) poisonEl.textContent = state.players[index].poison;
+      if (activeCounterPlayer === index && popupPoison) popupPoison.textContent = state.players[index].poison;
+
+      vibrate();
+      saveState();
+    }
+
+    function changeCommander(index, amount) {
+      state.players[index].commander = Math.max(0, state.players[index].commander + amount);
+
+      const commanderEl = document.getElementById(`commander-${index}`);
+      if (commanderEl) commanderEl.textContent = state.players[index].commander;
+      if (activeCounterPlayer === index && popupCommander) popupCommander.textContent = state.players[index].commander;
+
+      vibrate();
+      saveState();
+    }
+
+    function renamePlayer(index, value) {
+      state.players[index].name = value.trim();
+      saveState();
+    }
+
+    function openSettings() {
+      document.getElementById("playerCount").value = state.playerCount;
+      document.getElementById("startingLife").value = state.startingLife;
+      document.getElementById("commanderSlots").value = state.commanderSlots ? "on" : "off";
+      settingsDialog.showModal();
+    }
+
+    function closeSettings() {
+      settingsDialog.close();
+    }
+
+    function applySettings() {
+      const newCount = clamp(Number(document.getElementById("playerCount").value) || 2, 1, 99);
+      const newLife = clamp(Number(document.getElementById("startingLife").value) || 40, 1, 999);
+      const oldPlayers = state.players;
+
+      state.playerCount = newCount;
+      state.startingLife = newLife;
+      state.commanderSlots = document.getElementById("commanderSlots").value === "on";
+
+      state.players = Array.from({ length: newCount }, (_, i) => {
+        return normalizePlayer(oldPlayers[i] || {
+          name: "",
+          defaultName: `Player ${i + 1}`,
+          life: newLife,
+          poison: 0,
+          commander: 0,
+          colors: randomColorPair()
+        }, i);
+      });
+
+      const shouldReset = confirm("Apply settings and reset all visible players to the starting life?");
+      if (shouldReset) {
+        state.players.forEach((p, i) => {
+          p.life = newLife;
+          p.poison = 0;
+          p.commander = 0;
+          p.defaultName = `Player ${i + 1}`;
+        });
+      }
+
+      saveState();
+      render();
+      closeSettings();
+    }
+
+    function resetGame() {
+      const ok = confirm("Reset all visible players to the starting life?");
+      if (!ok) return;
+
+      state.players.forEach((p, i) => {
+        p.life = state.startingLife;
+        p.poison = 0;
+        p.commander = 0;
+        p.defaultName = `Player ${i + 1}`;
+      });
+
+      saveState();
+      render();
+    }
+
+    function openCounterMenu(index) {
+      if (state.playerCount <= 6) return;
+
+      activeCounterPlayer = index;
+      const player = state.players[index];
+
+      counterTitle.textContent = player.name || player.defaultName || `Player ${index + 1}`;
+      popupPoison.textContent = player.poison;
+      popupCommander.textContent = player.commander;
+      popupCommanderBlock.style.display = state.commanderSlots ? "block" : "none";
+
+      counterBackdrop.classList.add("open");
+      counterPopup.classList.add("open");
+    }
+
+    function closeCounterMenu() {
+      activeCounterPlayer = null;
+      counterBackdrop.classList.remove("open");
+      counterPopup.classList.remove("open");
+    }
+
+    function changePopupPoison(amount) {
+      if (activeCounterPlayer === null) return;
+      changePoison(activeCounterPlayer, amount);
+    }
+
+    function changePopupCommander(amount) {
+      if (activeCounterPlayer === null) return;
+      changeCommander(activeCounterPlayer, amount);
+    }
+
+    function toggleTray() {
+      const wrap = document.querySelector(".tray-wrap");
+      wrap.classList.toggle("open");
+      if (wrap.classList.contains("open")) syncQuickSettings();
+    }
+
+    function closeTray() {
+      document.querySelector(".tray-wrap").classList.remove("open");
+    }
+
+    function syncQuickSettings() {
+      quickPlayerCount.value = state.playerCount;
+      quickStartingLife.value = state.startingLife;
+      quickCommanderSlots.value = state.commanderSlots ? "on" : "off";
+    }
+
+    function applyQuickSettings() {
+      const newCount = clamp(Number(quickPlayerCount.value) || 2, 1, 99);
+      const newLife = clamp(Number(quickStartingLife.value) || 40, 1, 999);
+      const oldPlayers = state.players;
+
+      state.playerCount = newCount;
+      state.startingLife = newLife;
+      state.commanderSlots = quickCommanderSlots.value === "on";
+
+      state.players = Array.from({ length: newCount }, (_, i) => {
+        return normalizePlayer(oldPlayers[i] || {
+          name: "",
+          defaultName: `Player ${i + 1}`,
+          life: newLife,
+          poison: 0,
+          commander: 0,
+          colors: randomColorPair()
+        }, i);
+      });
+
+      const shouldReset = confirm("Apply settings and reset all visible players to the starting life?");
+      if (shouldReset) {
+        state.players.forEach((p, i) => {
+          p.life = newLife;
+          p.poison = 0;
+          p.commander = 0;
+          p.defaultName = `Player ${i + 1}`;
+        });
+      }
+
+      saveState();
+      render();
+      closeTray();
+    }
+
+    function closeRolls() {
+      // Rolls are always visible inside the all-in-one pop-out.
+    }
+
+    function rollDie(sides) {
+      closeRolls();
+      closeTray();
+
+      const finalResult = Math.floor(Math.random() * sides) + 1;
+      const sequence = Array.from({ length: 5 }, () => Math.floor(Math.random() * sides) + 1);
+      sequence.push(finalResult);
+
+      animateRoll({
+        label: `D${sides}`,
+        shapeClass: `shape-d${sides}`,
+        sequence,
+        finalText: `D${sides}: ${finalResult}`,
+        resultText: value => String(value)
+      });
+
+      vibrate();
+    }
+
+    function flipCoin() {
+      closeRolls();
+      closeTray();
+
+      const finalResult = Math.random() < 0.5 ? "Heads" : "Tails";
+      const options = ["Heads", "Tails"];
+      const sequence = Array.from({ length: 5 }, () => options[Math.floor(Math.random() * 2)]);
+      sequence.push(finalResult);
+
+      animateRoll({
+        label: "Coin Toss",
+        shapeClass: "shape-coin",
+        sequence,
+        finalText: `Coin: ${finalResult}`,
+        resultText: value => value === "Heads" ? "H" : "T"
+      });
+
+      vibrate();
+    }
+
+    function rollRandomPlayer() {
+      closeRolls();
+      closeTray();
+
+      const players = state.players.slice(0, state.playerCount).map((player, index) => ({
+        index,
+        label: player.name || player.defaultName || `Player ${index + 1}`
+      }));
+
+      const sequence = shuffle(players);
+      const finalPlayer = sequence[sequence.length - 1];
+
+      animateRoll({
+        label: "Random Player",
+        shapeClass: "shape-d20",
+        sequence,
+        finalText: `First Player: ${finalPlayer.label}`,
+        resultText: player => player.label
+      });
+
+      vibrate();
+    }
+
+    function animateRoll({ label, shapeClass, sequence, finalText, resultText }) {
+      rollOverlay.classList.add("open");
+      rollLabel.textContent = label;
+      rollResultText.textContent = "Rolling...";
+      rollShape.className = `roll-shape ${shapeClass}`;
+
+      let step = 0;
+
+      const tick = () => {
+        const value = sequence[step];
+        rollShape.textContent = resultText(value);
+        rollShape.classList.remove("shape-spin");
+        void rollShape.offsetWidth;
+        rollShape.classList.add("shape-spin");
+
+        step++;
+
+        if (step < sequence.length) {
+          setTimeout(tick, 320);
+        } else {
+          setTimeout(() => {
+            rollResultText.textContent = finalText;
+            rollShape.classList.remove("shape-spin");
+          }, 220);
+        }
+      };
+
+      tick();
+    }
+
+    function hideRollOverlay() {
+      rollOverlay.classList.remove("open");
+    }
+
+    function shuffle(array) {
+      const copy = [...array];
+
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+
+      return copy;
+    }
+
+    function clamp(num, min, max) {
+      return Math.min(max, Math.max(min, num));
+    }
+
+    function vibrate() {
+      if (navigator.vibrate) navigator.vibrate(18);
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    render();
+  </script>
+</body>
+</html>
