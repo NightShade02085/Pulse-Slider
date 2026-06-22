@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Typing Tutor Plus</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --panel: #1f2937;
+      --panel-2: #0f172a;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --good: #22c55e;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #0b1120, #111827 45%, #0f172a);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.9rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(31, 41, 55, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+    }
+
+    .lesson-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 64vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .lesson-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .lesson-btn:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+    .lesson-btn.active { border-color: var(--accent); outline: 2px solid rgba(34, 197, 94, 0.18); }
+    .lesson-btn.locked { opacity: 0.56; }
+
+    .lesson-title { font-weight: bold; margin-bottom: 3px; }
+    .lesson-meta { color: var(--muted); font-size: 0.84rem; }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 14px 0 12px;
+    }
+
+    .tab-btn {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab-btn.active {
+      border-color: var(--accent-2);
+      box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.3);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .stat-label { color: var(--muted); font-size: 0.8rem; margin-bottom: 6px; }
+    .stat-value { font-size: 1.35rem; font-weight: bold; }
+
+    .lesson-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .lesson-header p { margin: 6px 0 0; color: var(--muted); }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    button {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, #16a34a, #15803d);
+      border-color: #16a34a;
+    }
+
+    button:hover { filter: brightness(1.08); }
+
+    .prompt {
+      min-height: 190px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      font-size: 1.45rem;
+      line-height: 1.85;
+      letter-spacing: 0.025em;
+      margin-bottom: 14px;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .char.correct { color: var(--good); }
+    .char.incorrect { color: #fff; background: rgba(239, 68, 68, 0.85); border-radius: 4px; }
+    .char.current { background: rgba(56, 189, 248, 0.28); border-bottom: 2px solid var(--accent-2); border-radius: 4px; }
+    .char.pending { color: #e2e8f0; }
+
+    .inputbox {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text);
+      padding: 14px;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      outline: none;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .inputbox:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .message { min-height: 22px; font-weight: 600; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .small { color: var(--muted); font-size: 0.88rem; }
+
+    .progress-bar {
+      height: 10px;
+      background: #0b1220;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      transition: width 0.2s ease;
+    }
+
+    .side-summary {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-box {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .mini-label { color: var(--muted); font-size: 0.8rem; }
+    .mini-value { font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tabs { grid-template-columns: 1fr; }
+      .prompt { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+	<a href="../../index.html" class="back-btn">← Back to Hub</a>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Offline Typing Tutor Plus</h1>
+        <div class="subtitle">Expanded lessons, coding drills, saved progress, and accuracy-first practice that works fully offline.</div>
+      </div>
+      <div class="small">Open this file in your browser and train without internet</div>
+    </div>
+
+    <div class="grid">
+      <aside class="card">
+        <h2>Course</h2>
+        <div class="small">Pass a lesson with at least <strong>92% accuracy</strong> to unlock the next one in that track.</div>
+        <div class="tabs" id="trackTabs"></div>
+        <div class="progress-bar"><div class="progress-fill" id="courseProgress"></div></div>
+        <div class="small" id="courseProgressText" style="margin-top:8px;">0 / 0 complete</div>
+        <div class="lesson-list" id="lessonList"></div>
+
+        <div class="side-summary">
+          <div class="mini-box"><div class="mini-label">Track best WPM</div><div class="mini-value" id="trackBestWpm">0</div></div>
+          <div class="mini-box"><div class="mini-label">Track best accuracy</div><div class="mini-value" id="trackBestAccuracy">0%</div></div>
+          <div class="mini-box"><div class="mini-label">Practice focus</div><div class="mini-value" id="trackFocus">Home row</div></div>
+        </div>
+      </aside>
+
+      <main class="card">
+        <div class="stats">
+          <div class="stat"><div class="stat-label">WPM</div><div class="stat-value" id="wpm">0</div></div>
+          <div class="stat"><div class="stat-label">Accuracy</div><div class="stat-value" id="accuracy">100%</div></div>
+          <div class="stat"><div class="stat-label">Time</div><div class="stat-value" id="timer">0s</div></div>
+          <div class="stat"><div class="stat-label">Errors</div><div class="stat-value" id="errors">0</div></div>
+          <div class="stat"><div class="stat-label">Best WPM</div><div class="stat-value" id="bestWpm">0</div></div>
+        </div>
+
+        <div class="lesson-header">
+          <div>
+            <h2 id="currentLessonTitle">Lesson</h2>
+            <p id="currentLessonDesc"></p>
+          </div>
+          <div class="small" id="lessonStatus">Ready</div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="focusBtn">Focus typing box</button>
+          <button id="restartBtn">Restart lesson</button>
+          <button id="nextBtn">Next lesson</button>
+          <button id="shuffleBtn">Random lesson</button>
+          <button id="resetProgressBtn">Reset saved progress</button>
+        </div>
+
+        <div class="prompt" id="promptDisplay" aria-label="Typing prompt"></div>
+
+        <textarea
+          id="typingInput"
+          class="inputbox"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="Click here and start typing exactly what you see above..."
+        ></textarea>
+
+        <div class="footer-row">
+          <div class="message" id="message"></div>
+          <div class="small">Progress is saved automatically in this browser.</div>
+        </div>
+
+        <div class="small" id="practiceTip" style="margin-top:14px;">
+          Tip: Accuracy first. Keep shoulders relaxed, type the exact characters shown, and slow down when symbols get dense.
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const tracks = {
+      standard: {
+        name: 'Standard',
+        focus: 'General typing fluency',
+        tip: 'Use this track for everyday accuracy, smooth pacing, and endurance.',
+        lessons: [
+          { title: 'Home Row: F J', desc: 'Start with the guide keys.', text: 'fff jjj fjf jfj ffj jjf fjfj jffj fj fj jfjf' },
+          { title: 'Home Row: D K', desc: 'Add nearby home row reach.', text: 'ddd kkk ddk kkd df jk dk kd fj dk jk fd kd' },
+          { title: 'Home Row: S L', desc: 'Bring in s and l.', text: 'sss lll as sl ls al sad lad fall flask ask' },
+          { title: 'Home Row: A ;', desc: 'Complete the home row.', text: 'aaa ;;; a; ;a all ask dad fall salad flask lads' },
+          { title: 'Home Row Words', desc: 'Use full home-row words.', text: 'all falls ask flask salad lads dad adds glass asdf jkl; alas' },
+          { title: 'Top Row: E I', desc: 'Move upward to e and i.', text: 'eerie idle file side slide like dislike fields life' },
+          { title: 'Top Row: R U', desc: 'Add r and u.', text: 'rural ruler sure rise true user rules under fire' },
+          { title: 'Top Row: W O', desc: 'Expand the top row.', text: 'word wood slow flowers power owner lower wool sword' },
+          { title: 'Top Row: Q P', desc: 'Finish the top row.', text: 'quip equip people pipe proper power equal quiet popular' },
+          { title: 'Bottom Row: C M', desc: 'Start the bottom row.', text: 'calm came comic magic mimic claim calm music camera' },
+          { title: 'Bottom Row: V N', desc: 'Add v and n.', text: 'vine seven even never invent novice native divine' },
+          { title: 'Bottom Row: B ,', desc: 'Practice b and comma.', text: 'bob, bib, bulb, cabin, noble, blame, become, number' },
+          { title: 'Bottom Row: G H', desc: 'Reach center keys smoothly.', text: 'ghost hug high growth hanging gather higher fighting' },
+          { title: 'Short Sentences', desc: 'Simple sentence rhythm.', text: 'we rise with quiet focus and build skill one line at a time.' },
+          { title: 'Longer Sentences', desc: 'Clean movement over rushing.', text: 'slow hands become steady hands when you choose clean typing over rushing.' },
+          { title: 'Numbers and Dates', desc: 'Practice everyday number use.', text: 'April 17 2026, 8 45 AM, 12345, 67890, 42, 108, 365 days.' },
+          { title: 'Office Style Lines', desc: 'Common work phrasing.', text: 'Please review the updated document and send the final version by noon tomorrow.' },
+          { title: 'Punctuation Mix', desc: 'Handle commas, periods, and questions.', text: 'Hello, team. Did you finish the draft? If not, please send a quick update today.' },
+          { title: 'Accuracy Drill 1', desc: 'Similar words and letters.', text: 'form from farm frame flame same some came calm claim' },
+          { title: 'Accuracy Drill 2', desc: 'Common finger mix-ups.', text: 'there three where were their thread threat through thought though' },
+          { title: 'Paragraph 1', desc: 'A short paragraph for endurance.', text: 'Good typing is built one lesson at a time. Stay relaxed, keep your wrists light, and aim for smooth, accurate movement. Speed comes later.' },
+          { title: 'Paragraph 2', desc: 'Moderate work-style paragraph.', text: 'Typing for a living means accuracy matters just as much as speed. A single missed key can change a sentence, confuse a client, or slow down revision work.' },
+          { title: 'Paragraph 3', desc: 'Longer concentration drill.', text: 'Strong typists stay calm under pressure. They do not chase speed at the cost of control. They build reliable habits, return to problem keys, and train until clean input feels normal.' },
+          { title: 'Paragraph 4', desc: 'Final standard endurance pass.', text: 'Offline practice still works. Sit down, choose one lesson, and give it full attention. Measure your accuracy, notice your weak spots, and repeat until every line feels precise and steady.' }
+        ]
+      },
+      accuracy: {
+        name: 'Accuracy',
+        focus: 'High-precision error correction',
+        tip: 'These lines use look-alike patterns to train careful reading and exact finger placement.',
+        lessons: [
+          { title: 'Mirror Pairs 1', desc: 'Watch similar patterns.', text: 'deed feed seed need weed reed feel peel heel steel' },
+          { title: 'Mirror Pairs 2', desc: 'Slow down and compare.', text: 'late slate plate relate elate create crate trace' },
+          { title: 'Transposed Letters', desc: 'Catch order mistakes.', text: 'form from trial trail angle angel causal casual quiet quite' },
+          { title: 'Near Keys 1', desc: 'Focus on neighboring keys.', text: 'minimum maximum cinnamon aluminum museum medium premium' },
+          { title: 'Near Keys 2', desc: 'Watch repeated letters.', text: 'letter better setter matter pattern batter little kettle' },
+          { title: 'Confusing Words 1', desc: 'Read before typing.', text: 'then than them these those theme there three throat' },
+          { title: 'Confusing Words 2', desc: 'One wrong letter changes the word.', text: 'loose lose choose chose close clothes whose who is' },
+          { title: 'Work Terms 1', desc: 'Useful office-style language.', text: 'confirm copy comment complete compare company compose compact' },
+          { title: 'Work Terms 2', desc: 'Dense professional wording.', text: 'attachment attentive attention intention retention revision' },
+          { title: 'Symbol Accuracy', desc: 'Switch between letters and symbols.', text: 'end. end, end; end: (end) [end] {end} "end"' },
+          { title: 'Number Accuracy', desc: 'Common number clusters.', text: '101 110 1001 1110 2025 2026 2602 6202 9090 9900' },
+          { title: 'Short Precision Sentence', desc: 'Steady exact input.', text: 'Type each word exactly once, with no extra spaces, marks, or missing letters.' },
+          { title: 'Medium Precision Sentence', desc: 'Stay clean through punctuation.', text: 'Accurate typing saves time because you correct less, reread less, and trust your first draft more.' },
+          { title: 'Long Precision Paragraph', desc: 'High-accuracy endurance.', text: 'Precision is a habit. Each correct keystroke reinforces timing, spacing, and control. The goal is not to feel fast for one minute. The goal is to become dependable for hours.' }
+        ]
+      },
+      coding: {
+        name: 'Coding',
+        focus: 'Symbols, brackets, quotes, and code structure',
+        tip: 'This track trains the keys coders miss most: braces, brackets, semicolons, quotes, slashes, underscores, and operators.',
+        lessons: [
+          { title: 'Brackets 1', desc: 'Open and close symbols cleanly.', text: '() [] {} <> () [] {} <>' },
+          { title: 'Brackets 2', desc: 'Nested symbols.', text: '({[]}) {[()]} ([{}]) {{[()]}}' },
+          { title: 'Quotes and Commas', desc: 'Mix quotes with separators.', text: '"name", "email", "city", "state", "zip"' },
+          { title: 'Operators', desc: 'Basic coding operators.', text: 'a == b && c != d || e <= f && g >= h' },
+          { title: 'Assignment Line', desc: 'Simple variable pattern.', text: 'const total_count = itemCount + bonusCount;' },
+          { title: 'Function Call', desc: 'Parentheses and commas.', text: 'renderCard(title, subtitle, isActive, itemCount);' },
+          { title: 'Object Literal', desc: 'Colons and commas.', text: 'const user = { name: "Zem", level: 3, active: true };' },
+          { title: 'Array Line', desc: 'Brackets and strings.', text: 'const tracks = ["standard", "accuracy", "coding"];' },
+          { title: 'Conditional', desc: 'If statement precision.', text: 'if (score >= 92 && errors === 0) { unlockNextLesson(); }' },
+          { title: 'Loop Line', desc: 'Semicolons and increments.', text: 'for (let i = 0; i < lessons.length; i++) { total += i; }' },
+          { title: 'Arrow Function', desc: 'Equals, greater-than, braces.', text: 'const formatName = (first, last) => `${first} ${last}`;' },
+          { title: 'JSON Style', desc: 'Structured data typing.', text: '{ "theme": "dark", "fontSize": 16, "autosave": true }' },
+          { title: 'Path and Slash', desc: 'File path accuracy.', text: '/src/components/typing-tutor/offline_app/index.html' },
+          { title: 'CSS Rule', desc: 'Selectors and punctuation.', text: '.lesson-btn.active { border-color: #22c55e; padding: 12px; }' },
+          { title: 'HTML Tag Line', desc: 'Angle brackets and attributes.', text: '<button class="primary" id="nextBtn">Next lesson</button>' },
+          { title: 'SQL Line', desc: 'Quotes and commas.', text: 'SELECT id, title FROM lessons WHERE accuracy >= 92 ORDER BY id;' },
+          { title: 'Regex Style', desc: 'Slashes and symbols.', text: '/^[A-Za-z0-9_]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/g' },
+          { title: 'Bug Fix Sentence', desc: 'Natural language plus code symbols.', text: 'Check for an extra ) or ; before you save, build, commit, and push.' },
+          { title: 'Code Paragraph 1', desc: 'Long code-oriented practice.', text: 'Clean code typing is less about speed and more about exact symbols. One missing bracket, quote, or semicolon can break a build, so train yourself to see every character before you press it.' },
+          { title: 'Code Paragraph 2', desc: 'Final coding endurance drill.', text: 'When you practice coding accuracy, pay attention to visual patterns: opening and closing pairs, indentation habits, variable names, and punctuation clusters. Fast debugging starts with clean input.' }
+        ]
+      }
+    };
+
+    const storageKey = 'offlineTypingTutorPlus_v1';
+    const lessonList = document.getElementById('lessonList');
+    const promptDisplay = document.getElementById('promptDisplay');
+    const typingInput = document.getElementById('typingInput');
+    const currentLessonTitle = document.getElementById('currentLessonTitle');
+    const currentLessonDesc = document.getElementById('currentLessonDesc');
+    const message = document.getElementById('message');
+    const wpmEl = document.getElementById('wpm');
+    const accuracyEl = document.getElementById('accuracy');
+    const timerEl = document.getElementById('timer');
+    const errorsEl = document.getElementById('errors');
+    const bestWpmEl = document.getElementById('bestWpm');
+    const lessonStatus = document.getElementById('lessonStatus');
+    const courseProgress = document.getElementById('courseProgress');
+    const courseProgressText = document.getElementById('courseProgressText');
+    const trackTabs = document.getElementById('trackTabs');
+    const trackBestWpm = document.getElementById('trackBestWpm');
+    const trackBestAccuracy = document.getElementById('trackBestAccuracy');
+    const trackFocus = document.getElementById('trackFocus');
+    const practiceTip = document.getElementById('practiceTip');
+
+    let state = loadState();
+    let currentTrack = state.currentTrack || 'standard';
+    let currentLesson = state.currentLessonByTrack[currentTrack] || 0;
+    let startedAt = null;
+    let timerHandle = null;
+
+    function defaultTrackState(trackKey) {
+      return {
+        unlocked: 1,
+        completed: {},
+        bestWpmByLesson: {},
+        bestAccuracyByLesson: {},
+        currentLesson: 0
+      };
+    }
+
+    function defaultState() {
+      const trackState = {};
+      Object.keys(tracks).forEach(key => trackState[key] = defaultTrackState(key));
+      return {
+        currentTrack: 'standard',
+        currentLessonByTrack: { standard: 0, accuracy: 0, coding: 0 },
+        tracks: trackState
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        const merged = defaultState();
+        merged.currentTrack = parsed.currentTrack || merged.currentTrack;
+        merged.currentLessonByTrack = { ...merged.currentLessonByTrack, ...(parsed.currentLessonByTrack || {}) };
+        Object.keys(merged.tracks).forEach(key => {
+          merged.tracks[key] = { ...merged.tracks[key], ...((parsed.tracks || {})[key] || {}) };
+        });
+        return merged;
+      } catch {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function getTrackState(trackKey = currentTrack) {
+      return state.tracks[trackKey];
+    }
+
+    function getLessons(trackKey = currentTrack) {
+      return tracks[trackKey].lessons;
+    }
+
+    function escapedChar(char) {
+      return char
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderTabs() {
+      trackTabs.innerHTML = '';
+      Object.entries(tracks).forEach(([key, track]) => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn' + (key === currentTrack ? ' active' : '');
+        btn.textContent = track.name;
+        btn.addEventListener('click', () => {
+          currentTrack = key;
+          currentLesson = state.currentLessonByTrack[currentTrack] || 0;
+          state.currentTrack = currentTrack;
+          saveState();
+          loadLesson();
+        });
+        trackTabs.appendChild(btn);
+      });
+    }
+
+    function renderLessonList() {
+      const lessons = getLessons();
+      const trackState = getTrackState();
+      lessonList.innerHTML = '';
+      lessons.forEach((lesson, index) => {
+        const isUnlocked = index < trackState.unlocked;
+        const done = !!trackState.completed[index];
+        const bestAcc = trackState.bestAccuracyByLesson[index] ?? null;
+        const bestWpm = trackState.bestWpmByLesson[index] ?? null;
+        const btn = document.createElement('button');
+        btn.className = 'lesson-btn' + (index === currentLesson ? ' active' : '') + (!isUnlocked ? ' locked' : '');
+        btn.disabled = !isUnlocked;
+        btn.innerHTML = `
+          <div class="lesson-title">${index + 1}. ${lesson.title}${done ? ' ✓' : ''}</div>
+          <div class="lesson-meta">${lesson.desc}</div>
+          <div class="lesson-meta" style="margin-top:4px;">${done ? `Best: ${bestWpm || 0} WPM · ${bestAcc || 0}%` : (isUnlocked ? 'Unlocked' : 'Locked')}</div>
+        `;
+        btn.addEventListener('click', () => {
+          if (!isUnlocked) return;
+          currentLesson = index;
+          state.currentLessonByTrack[currentTrack] = index;
+          getTrackState().currentLesson = index;
+          saveState();
+          loadLesson();
+        });
+        lessonList.appendChild(btn);
+      });
+
+      const completedCount = Object.keys(trackState.completed).length;
+      const percent = Math.round((completedCount / lessons.length) * 100);
+      courseProgress.style.width = percent + '%';
+      courseProgressText.textContent = `${completedCount} / ${lessons.length} complete`;
+
+      const bestWpm = Math.max(0, ...Object.values(trackState.bestWpmByLesson));
+      const bestAcc = Math.max(0, ...Object.values(trackState.bestAccuracyByLesson));
+      trackBestWpm.textContent = String(bestWpm || 0);
+      trackBestAccuracy.textContent = `${bestAcc || 0}%`;
+      trackFocus.textContent = tracks[currentTrack].focus;
+      practiceTip.textContent = `Tip: ${tracks[currentTrack].tip}`;
+    }
+
+    function renderPrompt(inputValue = '') {
+      const target = getLessons()[currentLesson].text;
+      let html = '';
+      for (let i = 0; i < target.length; i++) {
+        const expected = target[i];
+        const typed = inputValue[i];
+        let className = 'pending';
+        if (typed != null) className = typed === expected ? 'correct' : 'incorrect';
+        if (i === inputValue.length) className = 'current';
+        html += `<span class="char ${className}">${escapedChar(expected)}</span>`;
+      }
+      promptDisplay.innerHTML = html;
+    }
+
+    function resetLiveStats() {
+      startedAt = null;
+      clearInterval(timerHandle);
+      timerHandle = null;
+      wpmEl.textContent = '0';
+      accuracyEl.textContent = '100%';
+      timerEl.textContent = '0s';
+      errorsEl.textContent = '0';
+      bestWpmEl.textContent = String(getTrackState().bestWpmByLesson[currentLesson] || 0);
+      lessonStatus.textContent = 'Ready';
+      message.textContent = '';
+      message.className = 'message';
+    }
+
+    function loadLesson() {
+      const lesson = getLessons()[currentLesson];
+      currentLessonTitle.textContent = `${tracks[currentTrack].name} · ${currentLesson + 1}. ${lesson.title}`;
+      currentLessonDesc.textContent = lesson.desc;
+      typingInput.value = '';
+      renderTabs();
+      renderPrompt('');
+      resetLiveStats();
+      renderLessonList();
+    }
+
+    function startTimerIfNeeded() {
+      if (startedAt) return;
+      startedAt = Date.now();
+      lessonStatus.textContent = 'In progress';
+      timerHandle = setInterval(updateStats, 200);
+    }
+
+    function getElapsedSeconds() {
+      if (!startedAt) return 0;
+      return Math.max(1, (Date.now() - startedAt) / 1000);
+    }
+
+    function countCorrectChars(typed, target) {
+      let correct = 0;
+      const max = Math.min(typed.length, target.length);
+      for (let i = 0; i < max; i++) if (typed[i] === target[i]) correct++;
+      return correct;
+    }
+
+    function countErrors(typed, target) {
+      let errors = 0;
+      const max = Math.min(typed.length, target.length);
+      for (let i = 0; i < max; i++) if (typed[i] !== target[i]) errors++;
+      if (typed.length > target.length) errors += typed.length - target.length;
+      return errors;
+    }
+
+    function updateStats() {
+      const typed = typingInput.value;
+      const target = getLessons()[currentLesson].text;
+      const elapsed = getElapsedSeconds();
+      const correctChars = countCorrectChars(typed, target);
+      const netWpm = Math.max(0, ((correctChars / 5) / (elapsed / 60)));
+      const accuracy = typed.length === 0 ? 100 : Math.max(0, Math.round((correctChars / typed.length) * 100));
+      const errors = countErrors(typed, target);
+
+      wpmEl.textContent = String(Math.round(netWpm));
+      accuracyEl.textContent = accuracy + '%';
+      timerEl.textContent = Math.floor(elapsed) + 's';
+      errorsEl.textContent = String(errors);
+      bestWpmEl.textContent = String(getTrackState().bestWpmByLesson[currentLesson] || 0);
+
+      if (typed.length > target.length) {
+        lessonStatus.textContent = 'Too many characters typed';
+      }
+    }
+
+    function finishLesson() {
+      clearInterval(timerHandle);
+      timerHandle = null;
+
+      const typed = typingInput.value;
+      const target = getLessons()[currentLesson].text;
+      const elapsed = getElapsedSeconds();
+      const correctChars = countCorrectChars(typed, target);
+      const accuracy = typed.length === 0 ? 0 : Math.round((correctChars / typed.length) * 100);
+      const wpm = Math.max(0, Math.round((correctChars / 5) / (elapsed / 60)));
+      const passed = typed === target && accuracy >= 92;
+      const trackState = getTrackState();
+
+      trackState.bestWpmByLesson[currentLesson] = Math.max(trackState.bestWpmByLesson[currentLesson] || 0, wpm);
+      trackState.bestAccuracyByLesson[currentLesson] = Math.max(trackState.bestAccuracyByLesson[currentLesson] || 0, accuracy);
+
+      if (passed) {
+        trackState.completed[currentLesson] = true;
+        trackState.unlocked = Math.max(trackState.unlocked, currentLesson + 2);
+        message.textContent = `Lesson passed! ${wpm} WPM · ${accuracy}% accuracy.`;
+        message.className = 'message good';
+        lessonStatus.textContent = 'Passed';
+      } else if (typed !== target) {
+        message.textContent = 'Not quite. Fix the highlighted mistakes and match the text exactly.';
+        message.className = 'message warn';
+        lessonStatus.textContent = 'Keep going';
+      } else {
+        message.textContent = `You finished, but need at least 92% accuracy to unlock the next lesson. Current: ${accuracy}%.`;
+        message.className = 'message bad';
+        lessonStatus.textContent = 'Retry needed';
+      }
+
+      saveState();
+      renderLessonList();
+      bestWpmEl.textContent = String(trackState.bestWpmByLesson[currentLesson] || 0);
+    }
+
+    typingInput.addEventListener('input', () => {
+      startTimerIfNeeded();
+      const typed = typingInput.value;
+      renderPrompt(typed);
+      updateStats();
+      if (typed === getLessons()[currentLesson].text) finishLesson();
+    });
+
+    document.getElementById('focusBtn').addEventListener('click', () => typingInput.focus());
+    document.getElementById('restartBtn').addEventListener('click', loadLesson);
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const lessons = getLessons();
+      const trackState = getTrackState();
+      const next = Math.min(currentLesson + 1, trackState.unlocked - 1, lessons.length - 1);
+      currentLesson = next;
+      state.currentLessonByTrack[currentTrack] = currentLesson;
+      trackState.currentLesson = currentLesson;
+      saveState();
+      loadLesson();
+    });
+
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      const trackState = getTrackState();
+      const maxUnlockedIndex = Math.max(0, trackState.unlocked - 1);
+      currentLesson = Math.floor(Math.random() * (maxUnlockedIndex + 1));
+      state.currentLessonByTrack[currentTrack] = currentLesson;
+      trackState.currentLesson = currentLesson;
+      saveState();
+      loadLesson();
+    });
+
+    document.getElementById('resetProgressBtn').addEventListener('click', () => {
+      const ok = confirm('Reset all saved progress, best scores, and unlocks across every track?');
+      if (!ok) return;
+      localStorage.removeItem(storageKey);
+      state = defaultState();
+      currentTrack = 'standard';
+      currentLesson = 0;
+      loadLesson();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') typingInput.blur();
+    });
+
+    loadLesson();
+  </script>
+</body>
+</html>

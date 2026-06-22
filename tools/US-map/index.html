@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>US City Explorer Offline</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<a href="../../index.html" class="back-btn">← Back to Hub</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">📍</div>
+        <div>
+          <div class="brand-title">US City Explorer</div>
+          <div class="brand-sub">Explore all 50 states and thousands of cities</div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" type="text" placeholder="Search city or state..." autocomplete="off">
+          <button id="searchClear" class="icon-btn search-clear" title="Clear">×</button>
+        </div>
+        <div id="searchDropdown" class="search-dropdown hidden"></div>
+      </div>
+
+      <div class="top-actions">
+        <button id="helpBtn" class="top-btn">❔ Help</button>
+        <button id="resetBtn" class="top-btn">⟲ Reset View</button>
+        <button id="settingsBtn" class="top-btn">⚙</button>
+      </div>
+    </header>
+
+    <main class="main-stage">
+      <div class="left-tools">
+        <button id="zoomInBtn" class="tool-btn">+</button>
+        <button id="zoomOutBtn" class="tool-btn">−</button>
+        <button id="centerBtn" class="tool-btn">⌖</button>
+        <button id="toggleDotsBtn" class="tool-btn">◈</button>
+      </div>
+
+      <section class="map-stage">
+        <div id="mapViewport" class="map-viewport">
+          <div id="mapScene" class="map-scene">
+            <img id="baseMap" src="us_map_base.png" alt="United States map">
+            <div id="stateLayer" class="overlay-layer"></div>
+            <div id="cityLayer" class="overlay-layer"></div>
+          </div>
+        </div>
+
+        <div class="bottom-hint">Click on a state or city to zoom in • Scroll to zoom • Drag to pan</div>
+      </section>
+
+      <aside class="right-panels">
+        <div class="panel controls-panel">
+          <h3>Map Controls</h3>
+          <ul>
+            <li>Click a state to zoom in</li>
+            <li>Click a city to zoom in</li>
+            <li>Use mouse wheel to zoom</li>
+            <li>Click and drag to pan</li>
+            <li>Search for any city or state</li>
+          </ul>
+        </div>
+
+        <div class="panel info-panel">
+          <h3 id="infoTitle">Ready</h3>
+          <p id="infoText">Select a state, city, or search result.</p>
+        </div>
+
+        <div class="panel stats-panel">
+          <h3>Database Statistics</h3>
+          <div class="stat-row"><span>States:</span><strong id="stateCount"></strong></div>
+          <div class="stat-row"><span>Cities:</span><strong id="cityCount"></strong></div>
+          <div class="stat-row"><span>Major Cities:</span><strong id="majorCount"></strong></div>
+          <div class="stat-foot">All data stored locally • Works offline</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="helpModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>How to use</h2>
+      <p>This app runs fully offline using your map image as the base.</p>
+      <ul>
+        <li>Click any highlighted state region to zoom to it.</li>
+        <li>Click any city dot to zoom to that city.</li>
+        <li>Type in the search bar for suggested matches.</li>
+        <li>Similar names are separated by state and county.</li>
+      </ul>
+      <button id="closeHelpBtn" class="top-btn">Close</button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
