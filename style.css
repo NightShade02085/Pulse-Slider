@@ -1,0 +1,52 @@
+/* ===== GLOBAL SETTINGS ===== */
+:root {
+    --bg-color: #0f172a;
+    --card-color: #1e293b;
+    --accent-color: #7c3aed;
+    --text-color: #f1f5f9;
+}
+
+/* ===== BODY ===== */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* ===== HEADER ===== */
+header {
+    text-align: center;
+    padding: 2rem;
+    background: var(--card-color);
+}
+
+/* ===== GRID ===== */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 2rem;
+}
+
+/* ===== TOOL CARDS ===== */
+.tool-card {
+    background: var(--card-color);
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: 0.2s;
+}
+
+.tool-card:hover {
+    transform: scale(1.05);
+    background: var(--accent-color);
+}
+
+/* ===== FOOTER ===== */
+footer {
+    text-align: center;
+    padding: 1rem;
+    background: var(--card-color);
+}
